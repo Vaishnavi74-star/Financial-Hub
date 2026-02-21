@@ -146,6 +146,72 @@ export async function registerRoutes(
     }
   });
 
+  // Budget Routes
+  app.get(api.budgets.list.path, requireAuth, async (req, res) => {
+    const items = await storage.getBudgets(req.session.userId!);
+    res.status(200).json(items);
+  });
+
+  app.post(api.budgets.create.path, requireAuth, async (req, res) => {
+    try {
+      const input = api.budgets.create.input.parse(req.body);
+      const item = await storage.createBudget(req.session.userId!, input);
+      res.status(201).json(item);
+    } catch (err) {
+      res.status(400).json({ message: "Invalid request" });
+    }
+  });
+
+  app.delete(api.budgets.delete.path, requireAuth, async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const deleted = await storage.deleteBudget(id, req.session.userId!);
+      if (!deleted) return res.status(404).json({ message: "Not found" });
+      res.status(204).send();
+    } catch (err) {
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
+  // Savings Goals Routes
+  app.get(api.goals.list.path, requireAuth, async (req, res) => {
+    const items = await storage.getSavingsGoals(req.session.userId!);
+    res.status(200).json(items);
+  });
+
+  app.post(api.goals.create.path, requireAuth, async (req, res) => {
+    try {
+      const input = api.goals.create.input.parse(req.body);
+      const item = await storage.createSavingsGoal(req.session.userId!, input);
+      res.status(201).json(item);
+    } catch (err) {
+      res.status(400).json({ message: "Invalid request" });
+    }
+  });
+
+  app.put(api.goals.update.path, requireAuth, async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const input = api.goals.update.input.parse(req.body);
+      const updated = await storage.updateSavingsGoal(id, req.session.userId!, input);
+      if (!updated) return res.status(404).json({ message: "Not found" });
+      res.status(200).json(updated);
+    } catch (err) {
+      res.status(400).json({ message: "Invalid request" });
+    }
+  });
+
+  app.delete(api.goals.delete.path, requireAuth, async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const deleted = await storage.deleteSavingsGoal(id, req.session.userId!);
+      if (!deleted) return res.status(404).json({ message: "Not found" });
+      res.status(204).send();
+    } catch (err) {
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
   // Report Routes
   app.get(api.reports.monthly.path, requireAuth, async (req, res) => {
     try {

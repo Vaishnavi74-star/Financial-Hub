@@ -1,5 +1,5 @@
 import { db } from "./db";
-import { users, transactions, type User, type InsertUser, type Transaction, type InsertTransaction } from "@shared/schema";
+import { users, transactions, budgets, savingsGoals, type User, type InsertUser, type Transaction, type InsertTransaction, type Budget, type InsertBudget, type SavingsGoal, type InsertSavingsGoal } from "@shared/schema";
 import { eq, desc, and, sql } from "drizzle-orm";
 
 export interface IStorage {
@@ -11,6 +11,15 @@ export interface IStorage {
   createTransaction(userId: number, transaction: InsertTransaction): Promise<Transaction>;
   updateTransaction(id: number, userId: number, updates: Partial<InsertTransaction>): Promise<Transaction | undefined>;
   deleteTransaction(id: number, userId: number): Promise<boolean>;
+
+  getBudgets(userId: number): Promise<Budget[]>;
+  createBudget(userId: number, budget: InsertBudget): Promise<Budget>;
+  deleteBudget(id: number, userId: number): Promise<boolean>;
+
+  getSavingsGoals(userId: number): Promise<SavingsGoal[]>;
+  createSavingsGoal(userId: number, goal: InsertSavingsGoal): Promise<SavingsGoal>;
+  updateSavingsGoal(id: number, userId: number, updates: Partial<InsertSavingsGoal>): Promise<SavingsGoal | undefined>;
+  deleteSavingsGoal(id: number, userId: number): Promise<boolean>;
 
   getMonthlyReport(userId: number): Promise<any[]>;
   getCategoryReport(userId: number): Promise<any[]>;
@@ -29,6 +38,7 @@ export class DatabaseStorage implements IStorage {
     const [user] = await db.insert(users).values(insertUser).returning();
     return user;
   }
+
   async getTransactions(userId: number): Promise<Transaction[]> {
     return await db.select().from(transactions).where(eq(transactions.userId, userId)).orderBy(desc(transactions.date));
   }
@@ -49,6 +59,42 @@ export class DatabaseStorage implements IStorage {
       .returning();
     return !!deleted;
   }
+
+  async getBudgets(userId: number): Promise<Budget[]> {
+    return await db.select().from(budgets).where(eq(budgets.userId, userId));
+  }
+  async createBudget(userId: number, budget: InsertBudget): Promise<Budget> {
+    const [newBudget] = await db.insert(budgets).values({ ...budget, userId }).returning();
+    return newBudget;
+  }
+  async deleteBudget(id: number, userId: number): Promise<boolean> {
+    const [deleted] = await db.delete(budgets)
+      .where(and(eq(budgets.id, id), eq(budgets.userId, userId)))
+      .returning();
+    return !!deleted;
+  }
+
+  async getSavingsGoals(userId: number): Promise<SavingsGoal[]> {
+    return await db.select().from(savingsGoals).where(eq(savingsGoals.userId, userId));
+  }
+  async createSavingsGoal(userId: number, goal: InsertSavingsGoal): Promise<SavingsGoal> {
+    const [newGoal] = await db.insert(savingsGoals).values({ ...goal, userId }).returning();
+    return newGoal;
+  }
+  async updateSavingsGoal(id: number, userId: number, updates: Partial<InsertSavingsGoal>): Promise<SavingsGoal | undefined> {
+    const [updated] = await db.update(savingsGoals)
+      .set(updates)
+      .where(and(eq(savingsGoals.id, id), eq(savingsGoals.userId, userId)))
+      .returning();
+    return updated;
+  }
+  async deleteSavingsGoal(id: number, userId: number): Promise<boolean> {
+    const [deleted] = await db.delete(savingsGoals)
+      .where(and(eq(savingsGoals.id, id), eq(savingsGoals.userId, userId)))
+      .returning();
+    return !!deleted;
+  }
+
   async getMonthlyReport(userId: number): Promise<any[]> {
     const results = await db.execute(sql`
       SELECT TO_CHAR(date, 'YYYY-MM') as month, type, CAST(SUM(amount) AS FLOAT) as total
